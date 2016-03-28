@@ -21,19 +21,18 @@ ACTIVITY_FUZZING_THRESHOLD = 100
 def update_activity():
     events = {}
     event_counts = collections.Counter()
-    event_ids = ActiveVisitorsByLiveUpdateEvent._cf.get_range(
-        column_count=1, filter_empty=False)
+    events = LiveUpdateEvent._all()
 
-    for event_id, is_active in event_ids:
+    for chunk in in_chunks(events, size=100):
         count = 0
+        event_context_id = "LiveUpdateEvent_" + event._id
 
-        if is_active:
-            try:
-                count = ActiveVisitorsByLiveUpdateEvent.get_count(event_id)
-            except tdb_cassandra.TRANSIENT_EXCEPTIONS as e:
-                g.log.warning("Failed to fetch activity count for %r: %s",
-                              event_id, e)
-                return
+        try:
+            count = c.activity_service.count_activity(
+        except tdb_cassandra.TRANSIENT_EXCEPTIONS as e:
+            g.log.warning("Failed to fetch activity count for %r: %s",
+                          event_id, e)
+            continue
 
         try:
             LiveUpdateActivityHistoryByEvent.record_activity(event_id, count)

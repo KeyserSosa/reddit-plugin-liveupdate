@@ -258,8 +258,8 @@ class LiveUpdateActivityHistoryByEvent(tdb_cassandra.View):
     }
 
     @classmethod
-    def record_activity(cls, event_id, activity_count):
-        cls._set_values(event_id, {uuid.uuid1(): activity_count})
+    def record_activity(cls, event_id, activity_count, batch=None):
+        cls._set_values(event_id, {uuid.uuid1(): activity_count}, batch=batch)
 
 
 class InviteNotFoundError(Exception):

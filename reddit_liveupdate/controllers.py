@@ -3,6 +3,7 @@ import hashlib
 import os
 import uuid
 
+from baseplate.thrift_pool import ThriftPoolError
 from pylons import request, response
 from pylons import tmpl_context as c
 from pylons import app_globals as g
@@ -203,6 +204,15 @@ class LiveUpdatePixelController(BaseController):
         user_agent = request.user_agent or ''
         user_id = hashlib.sha1(request.ip + user_agent).hexdigest()
         ActiveVisitorsByLiveUpdateEvent.touch(event_id, user_id)
+
+        if c.activity_service:
+            event_context_id = "LiveUpdateEvent_" + event_id
+            try:
+                c.activity_service.record_activity(event_context_id, user_id)
+            except ThriftPoolError as exc:
+                g.stats.simple_event("activity_service.write.fail")
+                g.log.warning("failed to record activity in %r: %s",
+                              event_id, exc)
 
         response.content_type = "image/png"
         response.headers["Cache-Control"] = "no-cache, max-age=0"
